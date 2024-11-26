@@ -43,46 +43,24 @@ class Program
     // -sample: write the default prompts to "prompts.txt" in the current directory and exit
     // -v, -verbose: provides additional console output
     // -unlock: bypass the lock file check (only jura code server) (use with caution)
+    // -job=<jobName>: specify a job file for an automated job, you can specify more than one job 
 
     // If the user is not able to run the program, it may be because the AI is locked by another user.
     // The program will check for a lock file and display an error message if the AI is locked.
 
-    static string lockFile = @"\\code-server\daten\ai-lock.txt";
     static string baseFolder = "";
     static bool bypassLock = false;
+    static List<AutomatedJobBase> automatedJobs = new List<AutomatedJobBase>();
 
-    static bool checkForLockFile() {
-        if (File.Exists(lockFile))
-        {
-            return true;
-        }
-        return false;
-    }
-
-    static string getLockFileContent() {
-        if (File.Exists(lockFile))
-        {
-            return File.ReadAllText(lockFile);
-        }
-        return "";
-    }
-
-    static void setLockFileContent() {
-        var content = "locked by " + Environment.UserName + " on " + Environment.MachineName + " at " + DateTime.Now.ToString();
-        File.WriteAllText(lockFile, content);
-    }
-
-    static void removeLockFile() {
-        if (File.Exists(lockFile))
-        {
-            if (!bypassLock) File.Delete(lockFile);
-        }
-    }
 
     // let's provide a handler if the user presses Ctrl+C so we can remove the lock file
     static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
     {
-        removeLockFile();
+        Console.WriteLine("Ctrl+C pressed, removing lock file(s)...");
+        foreach (var jobItem in automatedJobs)
+        {
+            jobItem.removeLockFile();
+        }
     }
 
     static void Main(string[] args)
@@ -123,21 +101,8 @@ class Program
             print_help_to_console();
             return;
         }
-        Console.WriteLine($"- v. {version_string}, checking lock...");
-        if (bypassLock) {
-            Console.WriteLine("- bypassing lock check");
-        } else 
-        {
-            if (checkForLockFile())
-            {
-                Console.WriteLine("Error: AI is locked by another user: " + getLockFileContent());
-                Console.WriteLine("Please try again later.");
-                return;
-            }
-        }
+        Console.WriteLine($"- v. {version_string}");
         Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-        setLockFileContent();
-        Console.WriteLine("- AI locked by: " + Environment.UserName);
         var solutionName = "";
         var open_code_file = "";
         var open_project_file = "";
@@ -208,6 +173,20 @@ class Program
                 preferredLanguage = Prompts.Language.DE;
                 continue;
             }
+            if (arg.Contains("-job="))
+            {
+                var jobFile = argument.Replace("-job=", "").Replace("'", "").Replace("\"", "").Trim();
+                try
+                {
+                    var j = new AutomatedJobBase();
+                    j.ReadJobDataFromFile(jobFile);
+                    automatedJobs.Add(j);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading job file {jobFile}: " + ex.Message);
+                }
+            }
             if (arg.Contains("-model=")) 
             {
                 if (arg.Contains(",") || arg.Contains(";")) {
@@ -219,7 +198,7 @@ class Program
                 }
                 continue;
             }
-            if (arg.Contains("-nodefault")) 
+            if (arg.Contains("-nodefault") || arg.Contains("-noeval")) 
             {
                 doCodeAnalysis = false;
                 continue;
@@ -268,176 +247,50 @@ class Program
             baseFolder = solutionFolder;
             solutionName = open_project_file;
         }
-        if (!Directory.Exists(solutionFolder))
-        {
-            Console.WriteLine("Error: solution folder not found: " + solutionFolder);
-            removeLockFile();
-            return;
-        }
 
-        var logfilename = Path.Combine(solutionFolder, "ai-log.txt");
-        if (verbose) Console.WriteLine("initializing log file - " + logfilename);
-        if (File.Exists(logfilename))
+        string commandLineArgs = "";
+        foreach (var arg in args)
         {
-            File.Delete(logfilename);
+            commandLineArgs += arg + " ";
         }
-        // print date and time to the log file
-        System.IO.File.AppendAllText(logfilename, DateTime.Now.ToString() + "\n\n");
+        AutomatedJobBase job = new AutomatedJobBase();
+        job.JobName = "command line: " + commandLineArgs;
+        job.baseFolder = baseFolder;
+        job.solutionFolder = solutionFolder;
+        job.solutionName = solutionName;
+        job.open_project_file = open_project_file;
+        job.open_code_file = open_code_file;
+        job.ignoreIssuesFile = ignoreIssuesFile;
+        job.verbose = verbose;
+        job.useFunction = useFunction;
+        job.doCodeAnalysis = doCodeAnalysis;
+        job.doMalwareCheck = doMalwareCheck;
+        job.requestedModels = requestedModels.ToList();
+        job.promptFile = promptFile;
+        job.preferredDetail = preferredDetail;
+        job.preferredLanguage = preferredLanguage;
+        job.OpenAI_ApiKey = OpenAI_ApiKey;
+        job.Gemini_ApiKey = Gemini_ApiKey;
+        job.Claude_ApiKey = Claude_ApiKey;
+        job.bypassLock = bypassLock;
+        
 
-        ChatBotInference chatBot = new ChatBotInference();
-        chatBot.Verbose = verbose;
-        chatBot.LanguageCode = preferredLanguage;
-        chatBot.DetailLevel = preferredDetail;
-        chatBot.OpenAIApiKey = OpenAI_ApiKey;
-        chatBot.GeminiApiKey = Gemini_ApiKey;
-        chatBot.ClaudeApiKey = Claude_ApiKey;
-        if (!string.IsNullOrEmpty(promptFile))
-        {
-            if (File.Exists(promptFile))
-            {
-                try
-                {
-                    Prompts.LoadPromptStringsFromFile(promptFile);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error loading prompt file: " + ex.Message);
-                }
-            }
-        }
-        // this is the event that will be triggered when the chatbot returns a result, we can use this to log the results
-        chatBot.ResultEvent += (sender, result) =>
-        {
-            var message = result.Item1;
-            var code_prompt = result.Item2;
-            if (verbose) Console.WriteLine("ChatBot: " + message);
-            Console.WriteLine($"logging to file {logfilename}...");
-            System.IO.File.AppendAllText(logfilename, "------------------------------------------------------------\n");
-            if (verbose) {
-                System.IO.File.AppendAllText(logfilename, code_prompt + "\n");
-                System.IO.File.AppendAllText(logfilename, "------------------------------------------------------------\n");
-            }
-            System.IO.File.AppendAllText(logfilename, message + "\n");
-            System.IO.File.AppendAllText(logfilename, "************************************************************\n\n");
-            System.IO.File.AppendAllText(logfilename, DateTime.Now.ToString() + "\n\n\n");
-        };
+        automatedJobs.Add(job);
 
-
-        RoslynSemanticBase demo_model;
-        if (string.IsNullOrEmpty(solutionName))
+        foreach (var jobItem in automatedJobs)
         {
-            string exampleCodeString = @"
-            using System;
-            class HelloWorld {
-                static void Main() {
-                    string[] args = Environment.GetCommandLineArgs()
-                    Console.WriteLine(args[10]);
-                }
-            }";
-            if (!string.IsNullOrEmpty(open_code_file))
+            try
             {
-                exampleCodeString = System.IO.File.ReadAllText(open_code_file);
+                jobItem.Run();
             }
-            demo_model = new ByCodeStringIterator();
-            demo_model.Verbose = verbose;
-            demo_model.SolutionFolder = baseFolder;
-            demo_model.CreateSolutionFromCSharpCode(exampleCodeString);
-        }
-        else
-        {
-            demo_model = new ByClassIterator();
-            if (useFunction)
+            catch (Exception ex)    
             {
-                demo_model = new ByFunctionIterator();
-                Console.WriteLine("granularity: analyzing by function");
-            }
-            else
-            {
-                Console.WriteLine("granularity: analyzing by class/module");
-            }
-            demo_model.Verbose = verbose;
-            demo_model.SolutionFolder = baseFolder;
-            if (!string.IsNullOrEmpty(open_project_file))
-            {
-                demo_model.LoadProjectIntoAdhocWorkspaceAsync(open_project_file);
-            }
-            else
-            {
-                demo_model.LoadSolutionFromFolder(solutionFolder);
+                Console.WriteLine("Error running job: " + ex.Message);
             }
         }
 
-        // load the ignore codes 
-        if (!string.IsNullOrEmpty(ignoreIssuesFile))
-        {
-            if (File.Exists(ignoreIssuesFile))
-            {
-                try
-                {
-                    var lines = System.IO.File.ReadAllLines(ignoreIssuesFile);
-                    demo_model.ignoreCodes = new List<string>();
-                    foreach (var ln in lines)
-                    {
-                        if (string.IsNullOrEmpty(ln)) continue;
-                        var line = ln.Trim(); 
-                        if (string.IsNullOrEmpty(line)) continue;
-                        if (line.StartsWith("//")) continue;
-                        if (line.StartsWith("#")) continue;
-                        if (line.StartsWith(";")) continue;
-                        if (line.StartsWith("'")) continue;
-                        if (line.ToLower().StartsWith("rem")) continue;
-                        demo_model.ignoreCodes.Add(line);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error loading ignore issues file: " + ex.Message);
-                }
-            }
-        }
 
-        // this is the event that will be triggered when each element i.e. class or function the semantic model is ready
-        demo_model.ResultEvent += async (sender, result) =>
-        {
-            RoslynSemanticBase.ResultObject res = (RoslynSemanticBase.ResultObject)result;
-            if (res == null)
-            {
-                Console.WriteLine("No result object.");
-                return;
-            }
-            var code_prompt = result.code;
-            var issue_prompt = result.issues;
-            var logText = result.file;
-            var issue_count = result.issue_count;
-            if (verbose) Console.WriteLine(logText);
-            // here's where we call the chatbot(s) to analyze the code and/or check for malware
-            bool finished;
-            if (doCodeAnalysis)
-            {
-                //Console.WriteLine($"Code Analysis with {issue_count} Issues (" + chatBot.ModelName + "): " + logText);
-                System.IO.File.AppendAllText(logfilename, $"Code Analysis with {issue_count} Issues ( (" + chatBot.ModelName + "): " + logText + "\n");
-                finished = chatBot.AnalyzeCode(code_prompt, logText, issue_prompt, issue_count).Result;
-            }
-            if (doMalwareCheck)
-            {
-                //Console.WriteLine("Code-Only Analysis or Malware Check (" + chatBot.ModelName + "): " + logText);
-                System.IO.File.AppendAllText(logfilename, "Code-Only Analysis or Malware Check (" + chatBot.ModelName + "): " + logText + "\n");
-                finished = chatBot.AnalyzeCode(code_prompt, logText).Result;
-            }
-        };
-        // make sure the solution is loaded
-        if (demo_model.CurrentSolution != null)
-        {
-            foreach (var ai_model in requestedModels)
-            {
-                chatBot.ModelName = ai_model;
-                demo_model.IterateSemanticModel();  // this will trigger the above ResultEvent
-            }
-        }
-
-        removeLockFile();
-
-        Console.WriteLine("Finished.");
+        Console.WriteLine("Finished!");
     }
 
     private static void print_help_to_console()
@@ -469,6 +322,8 @@ class Program
         Console.WriteLine("-sample: write the default prompts to \"prompts.txt\" in the current directory and exit");
         Console.WriteLine("-v, -verbose: provides additional console output");
         Console.WriteLine("-unlock: bypass the lock file check (only jura code server) (use with caution)");
+        Console.WriteLine("-job=<jobName>: specify a job file for an automated job, you can specify more than one job");
+
     }
 }
 
