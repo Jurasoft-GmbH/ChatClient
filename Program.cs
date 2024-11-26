@@ -4,7 +4,7 @@
 
 class Program
 {
-    static string version_string = "24.11.25.1";
+    static string version_string = "24.11.26.1";
 
     // This progam is a tool for analyzing .NET code using Roslyn and the code-server's AI models.
     // It can be used to analyze code in a solution or a single code file.
@@ -87,7 +87,10 @@ class Program
 
     static void Main(string[] args)
     {
-        baseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "source/repos/");
+        var userBaseFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        baseFolder = Path.Combine(userBaseFolder, "/samba_shared_folder/repos/");
+        if (!IO.Directory.Exists(baseFolder))
+            baseFolder = Path.Combine(userBaseFolder, "source/repos/");
         bool showHelp = false;
         foreach (var argument in args)
         {
