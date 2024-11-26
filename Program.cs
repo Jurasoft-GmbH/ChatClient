@@ -89,7 +89,7 @@ class Program
     {
         var userBaseFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         baseFolder = Path.Combine(userBaseFolder, "/samba_shared_folder/repos/");
-        if (!IO.Directory.Exists(baseFolder))
+        if (!System.IO.Directory.Exists(baseFolder))
             baseFolder = Path.Combine(userBaseFolder, "source/repos/");
         bool showHelp = false;
         foreach (var argument in args)
