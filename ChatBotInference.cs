@@ -66,15 +66,53 @@ public class ChatBotInference
         return await ExamineCodeUsingJuraCodeServer(code_prompt, logText, issue_prompt, issue_count);
     }
 
+    private string PreprocessTemplate(string prompt)
+    {
+        if (!string.IsNullOrEmpty(prompt))
+        {
+            if (prompt.Contains("{time}"))
+            {
+                prompt = prompt.Replace("{time}", DateTime.Now.ToString("t", new System.Globalization.CultureInfo("en-US")));
+            }
+            if (prompt.Contains("{date}"))
+            {
+                prompt = prompt.Replace("{date}", DateTime.Now.ToString("d", new System.Globalization.CultureInfo("en-US")));
+            }
+            if (prompt.Contains("{datum}"))
+            {
+                prompt = prompt.Replace("{datum}", DateTime.Now.ToString("d", new System.Globalization.CultureInfo("de-DE")));
+            }
+            if (prompt.Contains("{uhrzeit}"))
+            {
+                prompt = prompt.Replace("{uhrzeit}", DateTime.Now.ToString("HH:mm", new System.Globalization.CultureInfo("de-DE")));
+            }
+            if (prompt.Contains("{file=}")) {
+                var file = prompt.Substring(prompt.IndexOf("{file=") + 6);
+                file = file.Substring(0, file.IndexOf("}"));
+                if (File.Exists(file))
+                {
+                    try
+                    {
+                        prompt = prompt.Replace("{file=" + file + "}", File.ReadAllText(file));
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Chatbot: error reading file: " + e.Message);
+                    }
+                }
+            }
+        }
+        return prompt;
+    }
 
     public async Task<bool> ExamineCodeUsingJuraCodeServer(string code_prompt, string logText = "", string issue_prompt = "", int issue_count = 0)
     {
-        Console.WriteLine($"sending code with {issue_count} issues...");
+        //Console.WriteLine($"Chatbot: sending code with {issue_count} issue(s)...");
         var user_prompt = "";
         var system_prompt = "";
         if (issue_count > 0) 
         {
-            Console.WriteLine("analysis w/issues: sending code with issues to " + ModelName + "...");
+            Console.WriteLine($"Chatbot: analysis w/issues: sending code with {issue_count} issue(s) to " + ModelName + "...");
             system_prompt = Prompts.CodeWithIssuesSystem(LanguageCode, DetailLevel);
             user_prompt = Prompts.CodeWithIssuesUser(LanguageCode, DetailLevel).Replace("{code_prompt}", code_prompt).Replace("{issue_prompt}", issue_prompt);
             user_prompt = "Step 1 -- " + user_prompt;
@@ -86,10 +124,13 @@ public class ChatBotInference
         }
         else
         {
-            Console.WriteLine("code-only analysis: sending code to " + ModelName + "...");
+            Console.WriteLine("Chatbot: code-only analysis: sending code to " + ModelName + "...");
             system_prompt = Prompts.CodeOnlySystem(LanguageCode, DetailLevel);
             user_prompt = Prompts.CodeOnlyUser(LanguageCode, DetailLevel).Replace("{code_prompt}", code_prompt);
         }
+
+        system_prompt = PreprocessTemplate(system_prompt);
+        user_prompt = PreprocessTemplate(user_prompt);
 
         try
         {
@@ -119,7 +160,7 @@ public class ChatBotInference
                 {
                     if (chatResponse.Choices.Count == 0)
                     {
-                        Console.WriteLine("Warning: No choices in the response from " + ModelName);
+                        Console.WriteLine("Chatbot: Warning: No choices in the response from " + ModelName);
                     }
                     else
                     {
@@ -136,12 +177,12 @@ public class ChatBotInference
             }
             else
             {
-                Console.WriteLine($"ChatBot Error: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
+                Console.WriteLine($"ChatBot: Error: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ChatBot Exception occurred: {ex.Message}");
+            Console.WriteLine($"ChatBot: Exception occurred: {ex.Message}");
         }
         return true;
     }
@@ -153,7 +194,7 @@ public class ChatBotInference
 
         if (issue_count > 0)
         {
-            Console.WriteLine("analysis w/issues: sending code with issues to " + ModelName + "...");
+            Console.WriteLine($"Chatbot: analysis w/issues: sending code with {issue_count} issue(s) to " + ModelName + "...");
             user_prompt = Prompts.CodeWithIssuesUser(LanguageCode, DetailLevel).Replace("{code_prompt}", code_prompt).Replace("{issue_prompt}", issue_prompt);
             user_prompt = "Step 1 -- " + user_prompt;
             user_prompt += "\n\nStep 2 -- ";
@@ -164,9 +205,12 @@ public class ChatBotInference
         }
         else
         {
-            Console.WriteLine("code-only analysis: sending code to " + ModelName + "...");
+            Console.WriteLine("Chatbot: code-only analysis: sending code to " + ModelName + "...");
             user_prompt = Prompts.CodeOnlyUser(LanguageCode, DetailLevel).Replace("{code_prompt}", code_prompt);
         }
+
+        user_prompt = PreprocessTemplate(user_prompt);
+        system_prompt = PreprocessTemplate(system_prompt);
 
         try
         {
@@ -210,17 +254,17 @@ public class ChatBotInference
                 }
                 else
                 {
-                    Console.WriteLine("Warning: No choices in the response from " + ModelName);
+                    Console.WriteLine("Chatbot: Warning: No choices in the response from " + ModelName);
                 }
             }
             else
             {
-                Console.WriteLine($"ChatBot Error: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
+                Console.WriteLine($"Chatbot: Error: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ChatBot Exception occurred: {ex.Message}");
+            Console.WriteLine($"Chatbot: Exception occurred: {ex.Message}");
         }
         return true;
     }
@@ -232,7 +276,7 @@ public class ChatBotInference
 
         if (issue_count > 0)
         {
-            Console.WriteLine("analysis w/issues: sending code with issues to Google Gemini...");
+            Console.WriteLine($"Chatbot: analysis w/issues: sending code with {issue_count} issue(s) to Google Gemini...");
             user_prompt = Prompts.CodeWithIssuesUser(LanguageCode, DetailLevel).Replace("{code_prompt}", code_prompt).Replace("{issue_prompt}", issue_prompt);
             user_prompt = "Step 1 -- " + user_prompt;
             user_prompt += "\n\nStep 2 -- ";
@@ -243,9 +287,12 @@ public class ChatBotInference
         }
         else
         {
-            Console.WriteLine("code-only analysis: sending code to Google Gemini...");
+            Console.WriteLine("Chatbot: code-only analysis: sending code to Google Gemini...");
             user_prompt = Prompts.CodeOnlyUser(LanguageCode, DetailLevel).Replace("{code_prompt}", code_prompt);
         }
+
+        system_prompt = PreprocessTemplate(system_prompt);
+        user_prompt = PreprocessTemplate(user_prompt);
 
         try
         {
@@ -289,17 +336,17 @@ public class ChatBotInference
                 }
                 else
                 {
-                    Console.WriteLine("Warning: No choices in the response from Google Gemini");
+                    Console.WriteLine("Chatbot: Warning: No choices in the response from Google Gemini");
                 }
             }
             else
             {
-                Console.WriteLine($"Google Gemini Error: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
+                Console.WriteLine($"Chatbot: Google Gemini Error: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Google Gemini Exception occurred: {ex.Message}");
+            Console.WriteLine($"Chatbot: Google Gemini Exception occurred: {ex.Message}");
         }
         return true;
     }
@@ -312,7 +359,7 @@ public class ChatBotInference
 
         if (issue_count > 0)
         {
-            Console.WriteLine("analysis w/issues: sending code with issues to Claude...");
+            Console.WriteLine($"Chatbot: analysis w/issues: sending code with {issue_count} issue(s) to Claude...");
             user_prompt = Prompts.CodeWithIssuesUser(LanguageCode, DetailLevel).Replace("{code_prompt}", code_prompt).Replace("{issue_prompt}", issue_prompt);
             user_prompt = "Step 1 -- " + user_prompt;
             user_prompt += "\n\nStep 2 -- ";
@@ -323,9 +370,12 @@ public class ChatBotInference
         }
         else
         {
-            Console.WriteLine("code-only analysis: sending code to Claude...");
+            Console.WriteLine("Chatbot: code-only analysis: sending code to Claude...");
             user_prompt = Prompts.CodeOnlyUser(LanguageCode, DetailLevel).Replace("{code_prompt}", code_prompt);
         }
+
+        user_prompt = PreprocessTemplate(user_prompt);
+        system_prompt = PreprocessTemplate(system_prompt);
 
         try
         {
@@ -337,9 +387,9 @@ public class ChatBotInference
                 model = ModelName,
                 messages = new[]
                 {
-                new { role = "system", content = system_prompt },
-                new { role = "user", content = user_prompt }
-            },
+                    new { role = "system", content = system_prompt },
+                    new { role = "user", content = user_prompt }
+                },
                 temperature = Temperature,
                 max_tokens = 1500
             };
@@ -369,17 +419,17 @@ public class ChatBotInference
                 }
                 else
                 {
-                    Console.WriteLine("Warning: No choices in the response from Claude");
+                    Console.WriteLine("Chatbot: Warning: No choices in the response from Claude");
                 }
             }
             else
             {
-                Console.WriteLine($"Claude Error: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
+                Console.WriteLine($"Chatbot: Claude Error: {response.StatusCode}, {await response.Content.ReadAsStringAsync()}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Claude Exception occurred: {ex.Message}");
+            Console.WriteLine($"Chatbot: Claude Exception occurred: {ex.Message}");
         }
         return true;
     }
