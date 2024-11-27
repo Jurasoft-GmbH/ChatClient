@@ -52,7 +52,7 @@ public class ByFunctionIterator : RoslynSemanticBase
                         issue_prompt += $"\n{issue}";
                         if (Verbose) Console.WriteLine("Issue: " + issue);
                     }
-                    if (issue_count > 0) Console.WriteLine($"Iterator: {issue_count} Roslyn issues");
+                    if (issue_count > 0) Console.WriteLine($"Iterator: {issue_count} Roslyn issue(s)");
                     var code_prompt = function.ToFullString();
                     if (ResultEvent != null)
                     {
@@ -94,7 +94,7 @@ public class ByFunctionIterator : RoslynSemanticBase
                         issue_prompt += $"\n{issue}";
                         if (Verbose) Console.WriteLine("Issue: " + issue);
                     }
-                    if (issue_count > 0) Console.WriteLine($"Iterator: {issue_count} Roslyn issues");
+                    if (issue_count > 0) Console.WriteLine($"Iterator: {issue_count} Roslyn issue(s)");
                     var code_prompt = function.ToFullString();
                     if (ResultEvent != null)
                     {

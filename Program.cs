@@ -4,7 +4,7 @@
 
 class Program
 {
-    static string version_string = "24.11.26.1";
+    static string version_string = "24.11.27.1";
 
     // This progam is a tool for analyzing .NET code using Roslyn and the code-server's AI models.
     // It can be used to analyze code in a solution or a single code file.
@@ -77,20 +77,20 @@ class Program
         {
             var arg = argument.ToLower().Trim();
             if (arg.StartsWith("--")) arg = arg.Substring(1);
+            if (arg.StartsWith("-slnfolder="))
+            {
+                baseFolder = arg.Replace("-slnfolder=", "").Replace("'", "").Replace("\"", "").Trim();
+                continue;
+            }
             if (arg == "-h" || arg == "-help" || arg == "/?" || arg == "-?" || arg == "/h" || arg == "/help")
             {
                 showHelp = true;
                 break;
             }
-            if (arg.StartsWith("-slnfolder="))
-            {
-                baseFolder = arg.Replace("-slnfolder=", "").Replace("'", "").Replace("\"", "").Trim(); 
-                continue;
-            }
-            if (arg == "-unlock" || arg.Contains("-openai_key") || arg.Contains("-google_key"))
+            if (arg == "-unlock" || arg.Contains("-openai_key") || arg.Contains("-google_key") || arg.Contains("-claude_key"))
             {
                 bypassLock = true;
-                break;
+                continue;
             }
         }
         Console.WriteLine("----------------------------------");
@@ -126,6 +126,10 @@ class Program
             if (arg == "-sample")
             {
                 writeSample = true;
+                continue;
+            }
+            if (arg == "-unlock")
+            {
                 continue;
             }
             if (arg.Contains("-promptfile="))
@@ -186,6 +190,7 @@ class Program
                 {
                     Console.WriteLine($"Error loading job file {jobFile}: " + ex.Message);
                 }
+                continue;
             }
             if (arg.Contains("-model=")) 
             {
@@ -214,6 +219,10 @@ class Program
                     open_project_file = argument;
                 else
                     open_code_file = argument;
+                continue;
+            }
+            if (arg.Contains("-slnfolder="))
+            {
                 continue;
             }
             if (string.IsNullOrEmpty(solutionName))
