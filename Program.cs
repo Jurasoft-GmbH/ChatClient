@@ -4,7 +4,7 @@
 
 class Program
 {
-    static string version_string = "24.11.27.1";
+    static string version_string = "24.11.29.1";
 
     // This progam is a tool for analyzing .NET code using Roslyn and the code-server's AI models.
     // It can be used to analyze code in a solution or a single code file.
@@ -18,7 +18,9 @@ class Program
     // dotnet run [solutionName] | [filePath | projectPath] [options]
     // filePath: Path to a code file to analyze in adhoc workspace (optional, instead of a solutionName)
     // projectPath: Path to a project file (.vbproj, .cs.proj) to analyze in ad-hoc workspace (optional, use this if solutionName fails to load)
-    // IMPORTANT: The solutionName must be the name of a folder in the 'slnfolder' base directory
+    // IMPORTANT: The solutionName must be the name of a folder in the 'slnfolder' base directory. When a solution name is provided,
+    //            the the msbuild workspace is used instead of an adhoc workspace. You should have the .NET SDK and all appropriate dependencies
+    //            installed to use this feature.
 
     // Example:
     // dotnet run MySolution -malware -noeval -func             will do a malware check and use the function-based model without code analysis
@@ -324,7 +326,9 @@ class Program
         Console.WriteLine("dotnet run [solutionName] | [filePath | projectPath] [options]");
         Console.WriteLine("filePath: Path to a code file to analyze in adhoc workspace (optional, instead of a solutionName)");
         Console.WriteLine("projectPath: Path to a project file (.vbproj, .cs.proj) to analyze in ad-hoc workspace (optional, use this if solutionName fails to load)");
-        Console.WriteLine("IMPORTANT: The solutionName must be the name of a folder in the 'slnfolder' base directory");
+        Console.WriteLine("IMPORTANT: The solutionName must be the name of a folder in the 'slnfolder' base directory. When a solution name is provided,");
+        Console.WriteLine("           the the msbuild workspace is used instead of an adhoc workspace. You should have the .NET SDK and all appropriate ");
+        Console.WriteLine("           dependencies installed to use this feature.");
         Console.WriteLine("Example:");
         Console.WriteLine("ChatClient MySolution -malware -noeval -func             will do a malware check and use the function-based model without code analysis");
         Console.WriteLine("ChatClient MySolution                                    will do a code analysis using the class-based model");
