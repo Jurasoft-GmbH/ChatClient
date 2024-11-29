@@ -330,7 +330,7 @@ class Program
         Console.WriteLine("           the the msbuild workspace is used instead of an adhoc workspace. You should have the .NET SDK and all appropriate ");
         Console.WriteLine("           dependencies installed to use this feature.");
         Console.WriteLine("Example:");
-        Console.WriteLine("ChatClient MySolution -malware -noeval -func             will do a malware check and use the function-based model without code analysis");
+        Console.WriteLine("ChatClient MySolution -codeonly -noeval -func            will do a malware check and use the function-based model without code analysis");
         Console.WriteLine("ChatClient MySolution                                    will do a code analysis using the class-based model");
         Console.WriteLine("ChatClient C:\\path\\to\\file.cs                         will analyze the specified code file using an adhoc solution ");
         Console.WriteLine("ChatClient                                               will analyze the built-in example code using an adhoc solution");
