@@ -4,7 +4,7 @@
 
 class Program
 {
-    static string version_string = "24.11.29.1";
+    static string version_string = "24.11.29.2";
 
     // This progam is a tool for analyzing .NET code using Roslyn and the code-server's AI models.
     // It can be used to analyze code in a solution or a single code file.
@@ -29,6 +29,7 @@ class Program
     // dotnet run                                               will analyze the built-in example code using an adhoc solution
 
     // Options:
+    // -git: run analysis on git changes only
     // -codeonly: run analysis on code-only w/o compiler issues, e.g. for prompting malware checks, default is code-with-issues  
     // -nodefault: Disable default code-with-issues analysis (you should enable the -codeonly check if you use this option)
     // -d, -detail: Enable detailed prompt useage (default: concise)
@@ -112,6 +113,7 @@ class Program
         bool doCodeAnalysis = true;
         bool useFunction = false;
         bool verbose = false;
+        bool useGit = false;
         string Claude_ApiKey = "";
         string OpenAI_ApiKey = "";
         string Gemini_ApiKey = "";
@@ -128,6 +130,11 @@ class Program
             if (arg == "-sample")
             {
                 writeSample = true;
+                continue;
+            }
+            if (arg == "-git")
+            {
+                useGit = true;
                 continue;
             }
             if (arg == "-unlock")
@@ -296,6 +303,7 @@ class Program
         job.promptFile = promptFile;
         job.preferredDetail = preferredDetail;
         job.preferredLanguage = preferredLanguage;
+        job.gitHub = useGit;
         job.OpenAI_ApiKey = OpenAI_ApiKey;
         job.Gemini_ApiKey = Gemini_ApiKey;
         job.Claude_ApiKey = Claude_ApiKey;
@@ -335,6 +343,7 @@ class Program
         Console.WriteLine("ChatClient C:\\path\\to\\file.cs                         will analyze the specified code file using an adhoc solution ");
         Console.WriteLine("ChatClient                                               will analyze the built-in example code using an adhoc solution");
         Console.WriteLine("Options:");
+        Console.WriteLine("-git: run analysis on git changes only");
         Console.WriteLine("-codeonly: run analysis on code-only w/o compiler issues, e.g. for prompting malware checks, default is code-with-issues  ");
         Console.WriteLine("-nodefault: Disable default code-with-issues analysis (you should enable the -codeonly check if you use this option)");
         Console.WriteLine("-d, -detail: Enable detailed prompt useage (default: concise)");

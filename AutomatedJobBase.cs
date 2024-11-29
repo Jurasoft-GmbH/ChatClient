@@ -21,6 +21,8 @@ namespace ChatClient
         public bool doMalwareCheck { get; set; }
         public List<string> requestedModels { get; set; }
 
+        public bool gitHub { get; set; }
+
         public string promptFile { get; set; }
         public Prompts.Language preferredLanguage { get; set; }
         public Prompts.Detail preferredDetail { get; set; }
@@ -132,14 +134,21 @@ namespace ChatClient
             else
             {
                 demo_model = new ByClassIterator();
-                if (useFunction)
+                if (gitHub)
                 {
-                    demo_model = new ByFunctionIterator();
-                    Console.WriteLine("granularity: analyzing by function");
-                }
-                else
+                    demo_model = new ByGitChangeIterator();
+                    Console.WriteLine("granularity: analyzing by GitHub add/modify");
+                } else
                 {
-                    Console.WriteLine("granularity: analyzing by class/module");
+                    if (useFunction)
+                    {
+                        demo_model = new ByFunctionIterator();
+                        Console.WriteLine("granularity: analyzing by function");
+                    }
+                    else
+                    {
+                        Console.WriteLine("granularity: analyzing by class/module");
+                    }
                 }
                 demo_model.Verbose = verbose;
                 demo_model.SolutionFolder = baseFolder;
@@ -247,6 +256,10 @@ namespace ChatClient
                     {
                         JobName = item.Value;
                     }
+                    if (item.Key == "gitHub")
+                    {
+                        gitHub = bool.Parse(item.Value);
+                    }
                     if (item.Key == "solutionFolder")
                     {
                         solutionFolder = item.Value;
@@ -348,6 +361,7 @@ namespace ChatClient
                     sw.WriteLine("ignoreIssuesFile=" + ignoreIssuesFile);
                     sw.WriteLine("verbose=" + verbose);
                     sw.WriteLine("useFunction=" + useFunction);
+                    sw.WriteLine("gitHub=" + gitHub);
                     sw.WriteLine("doCodeAnalysis=" + doCodeAnalysis);
                     sw.WriteLine("doMalwareCheck=" + doMalwareCheck);
                     sw.WriteLine("requestedModels=" + requestedModelsString);
