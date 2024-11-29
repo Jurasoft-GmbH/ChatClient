@@ -327,6 +327,46 @@ namespace ChatClient
             }
         }
 
+        public void SaveJobToFile(string pathToJobFile)
+        {
+            try
+            {
+                string requestedModelsString = "";
+                if (requestedModels != null)
+                {
+                    requestedModelsString = string.Join(",", requestedModels);
+                }
+                // Create a file to write to.
+                using (StreamWriter sw = File.CreateText(pathToJobFile))
+                {
+                    sw.WriteLine("JobName=" + JobName);
+                    sw.WriteLine("solutionFolder=" + solutionFolder);
+                    sw.WriteLine("baseFolder=" + baseFolder);
+                    sw.WriteLine("solutionName=" + solutionName);
+                    sw.WriteLine("open_project_file=" + open_project_file);
+                    sw.WriteLine("open_code_file=" + open_code_file);
+                    sw.WriteLine("ignoreIssuesFile=" + ignoreIssuesFile);
+                    sw.WriteLine("verbose=" + verbose);
+                    sw.WriteLine("useFunction=" + useFunction);
+                    sw.WriteLine("doCodeAnalysis=" + doCodeAnalysis);
+                    sw.WriteLine("doMalwareCheck=" + doMalwareCheck);
+                    sw.WriteLine("requestedModels=" + requestedModelsString);
+                    sw.WriteLine("promptFile=" + promptFile);
+                    sw.WriteLine("preferredLanguage=" + preferredLanguage);
+                    sw.WriteLine("preferredDetail=" + preferredDetail);
+                    sw.WriteLine("OpenAI_ApiKey=" + OpenAI_ApiKey);
+                    sw.WriteLine("Gemini_ApiKey=" + Gemini_ApiKey);
+                    sw.WriteLine("Claude_ApiKey=" + Claude_ApiKey);
+                    sw.WriteLine("lockFile=" + lockFile);
+                    sw.WriteLine("bypassLock=" + bypassLock);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving job to {pathToJobFile}: " + ex.Message);
+            }
+        }
+
         internal bool checkForLockFile()
         {
             if (File.Exists(lockFile))

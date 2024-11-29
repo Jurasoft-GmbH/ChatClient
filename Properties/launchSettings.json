@@ -2,7 +2,7 @@
   "profiles": {
     "ChatClient": {
       "commandName": "Project",
-      "commandLineArgs": "-unlock -noeval rm.32ra.git -slnfolder=c:\\users\\paul\\repos\r\n"
+      "commandLineArgs": "-unlock -noeval -sample\r\n"
     }
   }
 }

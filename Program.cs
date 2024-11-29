@@ -234,11 +234,27 @@ class Program
         {
             try
             {
-                Prompts.SavePromptStringsToFile("prompts.txt");
+                Prompts.SavePromptStringsToFile("sample_prompts.txt");
+                AutomatedJobBase automatedJobBase = new AutomatedJobBase();
+                automatedJobBase.JobName = "Sample Job";
+                automatedJobBase.baseFolder = baseFolder;
+                automatedJobBase.SaveJobToFile("sample_job.txt");
+                RoslynSemanticBase rsb;
+                rsb = new ByFunctionIterator();
+                // open a sample ignore code file
+                var ignoreFile = "sample_ignore.txt";
+                List<string> ignoreCodes = new List<string>();
+                foreach (var code in rsb.ignoreCodes)
+                {
+                    ignoreCodes.Add(code);
+                }
+                System.IO.File.WriteAllLines(ignoreFile, ignoreCodes);
+                string currentDirectory = System.IO.Directory.GetCurrentDirectory();
+                Console.WriteLine($"Sample files 'sample_promts.txt',\n             'sample_job.txt',\n             'sample_ignore.txt'\nwere written to {currentDirectory}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error writing prompts.txt file: " + ex.Message);
+                Console.WriteLine("Error writing sample file(s): " + ex.Message);
             }
             Console.WriteLine("----------------------------------");
             return;
